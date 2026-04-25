@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: caching-layer-api
+    env: docker
+    plan: free
+    rootDir: app
+    healthCheckPath: /health
+    envVars:
+      - key: SKIP_EXTERNAL_SERVICES
+        value: true
+      - key: DEFAULT_CACHE_BACKEND
+        value: redis
+      - key: CACHE_TTL_SECONDS
+        value: 300
+      - key: RATE_LIMIT_PER_MINUTE
+        value: 100
+      # Dummy values are enough in deployment-only mode.
+      - key: REDIS_URL
+        value: redis://localhost:6379
+      - key: MEMCACHED_URL
+        value: memcached:11211
+      - key: DATABASE_URL
+        value: postgres://catalog:catalog@localhost:5432/catalog

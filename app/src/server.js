@@ -53,23 +53,27 @@ async function startServer() {
         // Loading config is part of startup and validates required env vars.
         const port = config.apiPort;
 
-        redisClient = await connectRedis();
+        if (!config.skipExternalServices) {
+            redisClient = await connectRedis();
 
-        invalidationSubscriber = redisClient.duplicate();
-        invalidationSubscriber.on('error', (error) => {
-            console.error('Redis invalidation subscriber error', error);
-        });
-        await invalidationSubscriber.connect();
-        await invalidationSubscriber.subscribe(INVALIDATION_CHANNEL, async (message) => {
-            try {
-                const payload = JSON.parse(message);
-                if (payload && payload.key) {
-                    await redisClient.del(payload.key);
+            invalidationSubscriber = redisClient.duplicate();
+            invalidationSubscriber.on('error', (error) => {
+                console.error('Redis invalidation subscriber error', error);
+            });
+            await invalidationSubscriber.connect();
+            await invalidationSubscriber.subscribe(INVALIDATION_CHANNEL, async (message) => {
+                try {
+                    const payload = JSON.parse(message);
+                    if (payload && payload.key) {
+                        await redisClient.del(payload.key);
+                    }
+                } catch (error) {
+                    console.error('Failed to process invalidation message', error);
                 }
-            } catch (error) {
-                console.error('Failed to process invalidation message', error);
-            }
-        });
+            });
+        } else {
+            console.log('SKIP_EXTERNAL_SERVICES=true, starting without Redis/Memcached/Postgres dependencies');
+        }
 
         server = app.listen(port, () => {
             console.log(`Server is running on port ${port}`);
